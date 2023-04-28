@@ -9,7 +9,7 @@ from .models import Message, Room
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_name = self.scope['url_route']['kwargs']['slug']
         self.room_group_name = 'chat_%s' % self.room_name
         
         await self.channel_layer.group_add(
@@ -60,3 +60,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
         room = Room.objects.get(slug=room)
         
         Message.objects.create(user=user, room=room, content=message)
+
+class ActiveUsersConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.channel_layer.group_add(
+            'active_users', 
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            'active_users', 
+            self.channel_name
+        )
+
+    async def active_users_update(self, event):
+        active_users = event['data']
+        await self.send(text_data=json.dumps({
+            'type': 'active_users_update',
+            'data': active_users
+        }))

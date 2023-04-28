@@ -3,23 +3,13 @@
 {% block title %}Rooms | {% endblock %}
 
 {% block content %} 
-    <!-- <div class="p-10 lg:p-20 text-center">
-        <h1 class="text-3xl lg:text-6xl text-white">Rooms</h1>
-    </div> -->
-
     <div class="mt-6 w-full flex flex-wrap items-start mx-3">
 
         <div class="lg:w-1/8 mt-6 mx-4 lg:mx-auto p-4 bg-white rounded-xl">
             <div class="space-y-3" >
                 <p class="font-semibold">Online:</p>
-                {% for user in active_users %}
-                <div class="p-4 bg-gray-200 rounded-xl">
-                    <div class="w-6 h-6 bg-green-400 rounded-full float-left"></div>
-                    <div class="font-semibold px-10">
-                        <p>{{ user.username }}</p>
-                    </div>
+                <div id="active-users">
                 </div>
-                {% endfor %}
             </div>
         </div>
     
@@ -38,5 +28,71 @@
         </div>
     
     </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+    <script> 
+        const activeUsersSocket = new WebSocket(
+          'ws://' 
+          + window.location.host 
+          + '/ws/users/active_users/'
+        );
+      
+        function renderActiveUsers(activeUsers) {
+          const activeUsersElement = document.getElementById('active-users');
+          activeUsersElement.innerHTML = '';
+          for (let i = 0; i < activeUsers.length; i++) {
+            const userElement = document.createElement('div');
+            userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
+      
+            const statusElement = document.createElement('div');
+            statusElement.className = 'w-6 h-6 bg-green-400 rounded-full float-left';
+      
+            userElement.appendChild(statusElement);
+            const usernameElement = document.createElement('div');
+      
+            usernameElement.className = 'font-semibold px-10';
+            usernameElement.innerHTML = '<p>' + activeUsers[i] + '</p>';
+      
+            userElement.appendChild(usernameElement);
+            activeUsersElement.appendChild(userElement);
+          }
+        }
+
+        activeUsersSocket.onopen = function (e) {
+            console.log('WebSocket connection opened.');
+            const activeUsersElement = document.getElementById('active-users');
+            activeUsersElement.innerHTML = '';
+
+            activeUsersSocket.addEventListener('message', function (event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'active_users_update') {
+                    renderActiveUsers(data.data);
+                }
+            });
+
+            fetch('/rooms/users/active_users/')
+                .then(response => response.json())
+                .then(data => {
+                    renderActiveUsers(data.active_users);
+                })
+                .catch(error => console.error(error));
+        };
+      
+        activeUsersSocket.onclose = function (e) {
+          console.log('WebSocket connection closed.');
+        };
+
+        // activeUsersSocket.onmessage = function (e) {
+        //     const data = JSON.parse(e.data);
+        //     if (data.type === 'active_users_update') {
+        //         renderActiveUsers(data.data);
+        //     }
+        // };
+
+    </script>
+      
 
 {% endblock %}
