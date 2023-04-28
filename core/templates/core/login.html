@@ -31,7 +31,15 @@
                 {% endfor %}
             {% endfor %}
         {% endif %}
+
+        <!-- LoginView default error for incorrect username/password -->
+        {% for error in form.non_field_errors %}
+            <div class="mb-5 p-4 rounded-xl bg-red-300 text-white">
+                <p>{{ error|escape }}</p>
+            </div>
+        {% endfor %}
            
         <button class="px-5 py-3 rounded-xl text-white bg-teal-800 hover:bg-teal-700">Log In</button>
     </form>
+
 {% endblock %}
