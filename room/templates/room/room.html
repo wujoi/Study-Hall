@@ -11,8 +11,15 @@
         <div class="chat-messages space-y-3" id="chat-messages">
             {% for message in messages %}
             <div class="p-4 bg-gray-200 rounded-xl">
-                <p class="font-semibold">{{ message.user.username }}</p>
-                <p>{{ message.content }}</p>
+                <div class="w-12 h-12 p-3 bg-white rounded-full float-left mr-3 flex items-center justify-center">
+                    <div class="text-gray-400 font-semibold text-lg uppercase text-center">
+                        {{ message.user.username|slice:":1" }}
+                    </div>
+                </div>
+                <div>
+                    <p class="font-semibold">{{ message.user.username }}</p>
+                    <p>{{ message.content }}</p>
+                </div>
             </div>
             {% endfor %}
         </div>

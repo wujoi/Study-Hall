@@ -81,3 +81,45 @@ class ActiveUsersConsumer(AsyncWebsocketConsumer):
             'type': 'active_users_update',
             'data': active_users
         }))
+
+class AwayUsersConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.channel_layer.group_add(
+            'away_users', 
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            'away_users', 
+            self.channel_name
+        )
+
+    async def away_users_update(self, event):
+        away_users = event['data']
+        await self.send(text_data=json.dumps({
+            'type': 'away_users_update',
+            'data': away_users
+        }))
+
+class InactiveUsersConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        await self.channel_layer.group_add(
+            'inactive_users', 
+            self.channel_name
+        )
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(
+            'inactive_users', 
+            self.channel_name
+        )
+
+    async def inactive_users_update(self, event):
+        inactive_users = event['data']
+        await self.send(text_data=json.dumps({
+            'type': 'inactive_users_update',
+            'data': inactive_users
+        }))

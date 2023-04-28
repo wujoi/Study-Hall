@@ -3,13 +3,14 @@
 {% block title %}Rooms | {% endblock %}
 
 {% block content %} 
-    <div class="mt-6 w-full flex flex-wrap items-start mx-3">
+    <div class="mt-6 mx-3 w-full flex flex-wrap items-start">
 
-        <div class="lg:w-1/8 mt-6 mx-4 lg:mx-auto p-4 bg-white rounded-xl">
+        <div class="lg:w-1/8 mx-4 lg:mx-auto p-4 bg-white rounded-xl">
             <div class="space-y-3" >
-                <p class="font-semibold">Online:</p>
-                <div id="active-users">
-                </div>
+                <p class="font-semibold">Status:</p>
+                <div id="active-users"></div>
+                <div id="away-users"></div>
+                <div id="inactive-users"></div>
             </div>
         </div>
     
@@ -17,10 +18,12 @@
             <div class="flex flex-wrap mx-3">
                 {% for room in rooms %}
                     <div class="w-full lg:w-1/4 px-3 py-3">
-                        <div class="p-4 bg-white shadow rounded-xl text-center">
+                        <div class="p-4 bg-white shadow rounded-xl text-center h-full flex flex-col justify-center">
                             <h2 class="mb-5 text-2xl font-semibold">{{ room.name }}</h2>
     
-                            <a href="{% url 'room' room.slug %}" class="px-5 py-3 block rounded-xl text-white bg-slate-600 hover:bg-slate-700">Join</a>
+                            <div class="mt-auto">
+                                <a href="{% url 'room' room.slug %}" class="px-5 py-3 block rounded-xl text-white bg-slate-600 hover:bg-slate-700">Join</a>
+                            </div>
                         </div>
                     </div>
                 {% endfor %}
@@ -39,26 +42,89 @@
           + window.location.host 
           + '/ws/users/active_users/'
         );
+
+        const awayUsersSocket = new WebSocket(
+          'ws://' 
+          + window.location.host 
+          + '/ws/users/away_users/'
+        );
+
+        const inactiveUsersSocket = new WebSocket(
+          'ws://' 
+          + window.location.host 
+          + '/ws/users/inactive_users/'
+        );
       
         function renderActiveUsers(activeUsers) {
-          const activeUsersElement = document.getElementById('active-users');
-          activeUsersElement.innerHTML = '';
-          for (let i = 0; i < activeUsers.length; i++) {
-            const userElement = document.createElement('div');
-            userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
-      
-            const statusElement = document.createElement('div');
-            statusElement.className = 'w-6 h-6 bg-green-400 rounded-full float-left';
-      
-            userElement.appendChild(statusElement);
-            const usernameElement = document.createElement('div');
-      
-            usernameElement.className = 'font-semibold px-10';
-            usernameElement.innerHTML = '<p>' + activeUsers[i] + '</p>';
-      
-            userElement.appendChild(usernameElement);
-            activeUsersElement.appendChild(userElement);
-          }
+            const activeUsersElement = document.getElementById('active-users');
+            activeUsersElement.innerHTML = '';
+            if(!activeUsers){
+                    return
+            }
+            for (let i = 0; i < activeUsers.length; i++) {
+                const userElement = document.createElement('div');
+                userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
+        
+                const statusElement = document.createElement('div');
+                statusElement.className = 'w-6 h-6 bg-green-400 rounded-full float-left';
+        
+                userElement.appendChild(statusElement);
+                const usernameElement = document.createElement('div');
+        
+                usernameElement.className = 'font-semibold px-10';
+                usernameElement.innerHTML = '<p>' + activeUsers[i] + '</p>';
+        
+                userElement.appendChild(usernameElement);
+                activeUsersElement.appendChild(userElement);
+            }
+        }
+
+        function renderAwayUsers(awayUsers) {
+            const awayUsersElement = document.getElementById('away-users');
+            awayUsersElement.innerHTML = '';
+            if(!awayUsers){
+                return
+            }
+            for (let i = 0; i < awayUsers.length; i++) {
+                const userElement = document.createElement('div');
+                userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
+
+                const statusElement = document.createElement('div');
+                statusElement.className = 'w-6 h-6 bg-yellow-400 rounded-full float-left';
+
+                userElement.appendChild(statusElement);
+                const usernameElement = document.createElement('div');
+
+                usernameElement.className = 'font-semibold px-10';
+                usernameElement.innerHTML = '<p>' + awayUsers[i] + '</p>';
+
+                userElement.appendChild(usernameElement);
+                awayUsersElement.appendChild(userElement);
+            }
+        };
+        
+        function renderInactiveUsers(inactiveUsers) {
+            const inactiveUsersElement = document.getElementById('inactive-users');
+            inactiveUsersElement.innerHTML = '';
+            if(!inactiveUsers){
+                return
+            }
+            for (let i = 0; i < inactiveUsers.length; i++) {
+                const userElement = document.createElement('div');
+                userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
+
+                const statusElement = document.createElement('div');
+                statusElement.className = 'w-6 h-6 bg-red-400 rounded-full float-left';
+
+                userElement.appendChild(statusElement);
+                const usernameElement = document.createElement('div');
+
+                usernameElement.className = 'font-semibold px-10';
+                usernameElement.innerHTML = '<p>' + inactiveUsers[i] + '</p>';
+
+                userElement.appendChild(usernameElement);
+                inactiveUsersElement.appendChild(userElement);
+            }
         }
 
         activeUsersSocket.onopen = function (e) {
@@ -69,28 +135,69 @@
             activeUsersSocket.addEventListener('message', function (event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'active_users_update') {
-                    renderActiveUsers(data.data);
+                    renderActiveUsers(data.data, 'green');
                 }
             });
 
             fetch('/rooms/users/active_users/')
                 .then(response => response.json())
                 .then(data => {
-                    renderActiveUsers(data.active_users);
+                    renderActiveUsers(data.active_users, 'green');
                 })
                 .catch(error => console.error(error));
         };
-      
-        activeUsersSocket.onclose = function (e) {
-          console.log('WebSocket connection closed.');
+
+        awayUsersSocket.onopen = function (e) {
+            console.log('WebSocket connection opened.');
+            const awayUsersElement = document.getElementById('away-users');
+            awayUsersElement.innerHTML = '';
+
+            awayUsersSocket.addEventListener('message', function (event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'away_users_update') {
+                    renderAwayUsers(data.data, 'yellow');
+                }
+            });
+
+            fetch('/rooms/users/away_users/')
+                .then(response => response.json())
+                .then(data => {
+                    renderAwayUsers(data.away_users, 'yellow');
+                })
+                .catch(error => console.error(error));
         };
 
-        // activeUsersSocket.onmessage = function (e) {
-        //     const data = JSON.parse(e.data);
-        //     if (data.type === 'active_users_update') {
-        //         renderActiveUsers(data.data);
-        //     }
-        // };
+        inactiveUsersSocket.onopen = function (e) {
+            console.log('WebSocket connection opened.');
+            const inactiveUsersElement = document.getElementById('inactive-users');
+            inactiveUsersElement.innerHTML = '';
+
+            inactiveUsersSocket.addEventListener('message', function (event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'inactive_users_update') {
+                    renderInactiveUsers(data.data, 'red');
+                }
+            });
+
+            fetch('/rooms/users/inactive_users/')
+                .then(response => response.json())
+                .then(data => {
+                    renderInactiveUsers(data.inactive_users, 'red');
+                })
+                .catch(error => console.error(error));
+        };
+  
+        activeUsersSocket.onclose = function (e) {
+        console.log('WebSocket connection closed.');
+        };
+
+        awayUsersSocket.onclose = function (e) {
+        console.log('WebSocket connection closed.');
+        };
+
+        inactiveUsersSocket.onclose = function (e) {
+        console.log('WebSocket connection closed.');
+        };
 
     </script>
       

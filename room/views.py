@@ -5,7 +5,6 @@ from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.http import JsonResponse
-from django.db.models import Q
 
 from .models import Room, Message
 
@@ -29,6 +28,37 @@ def active_users(request):
         }
     )
     return JsonResponse({'active_users': usernames})
+
+@login_required
+def away_users(request):
+    ############ update to check activity rather than login ############
+    # users that have logged in within the last 30 minutes excluding admins
+    users = User.objects.filter(last_login__gte=timezone.now()-timezone.timedelta(minutes=30), last_login__lte=timezone.now()-timezone.timedelta(minutes=60)).exclude(is_superuser=True)
+    usernames = [user.username for user in users]
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'away_users',
+        {
+            'type': 'away_users_update',
+            'data': usernames,
+        }
+    )
+    return JsonResponse({'active_users': usernames})
+
+@login_required
+def inactive_users(request):
+    ############ update to check activity rather than login ############
+    users = User.objects.filter(last_login__lt=timezone.now()-timezone.timedelta(minutes=60)).exclude(is_superuser=True)
+    usernames = [user.username for user in users]
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'inactive_users',
+        {
+            'type': 'inactive_users_update',
+            'data': usernames,
+        }
+    )
+    return JsonResponse({'inactive_users': usernames})
 
 @login_required
 def room(request, slug):
