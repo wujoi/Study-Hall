@@ -1,8 +1,6 @@
 import json
-
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
-
 from django.contrib.auth.models import User
 
 from .models import Message, Room
@@ -27,99 +25,65 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
-        message = data['message']
+        chatmessage = data['chatmessage']
         username = data['username']
         room = data['room']
 
-        await self.save_message(username, room, message)
+        await self.save_message(username, room, chatmessage)
 
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 'type': 'chat_message',
-                'message': message,
+                'chatmessage': chatmessage,
                 'username': username,
                 'room': room,
             }
         )
         
     async def chat_message(self, event):
-        message = event['message']
+        chatmessage = event['chatmessage']
         username = event['username']
         room = event['room']
 
         await self.send(text_data=json.dumps({
-            'message': message,
+            'chatmessage': chatmessage,
             'username': username,
             'room': room,
         }))
     
     @sync_to_async
-    def save_message(self, username, room, message):
+    def save_message(self, username, room, chatmessage):
         user = User.objects.get(username=username)
         room = Room.objects.get(slug=room)
         
-        Message.objects.create(user=user, room=room, content=message)
+        Message.objects.create(user=user, room=room, content=chatmessage)
 
-class ActiveUsersConsumer(AsyncWebsocketConsumer):
+class UserActivityConsumer(AsyncWebsocketConsumer):
     async def connect(self):
+        self.group_name = 'user_activity'
+
         await self.channel_layer.group_add(
-            'active_users', 
+            self.group_name,
             self.channel_name
         )
         await self.accept()
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
-            'active_users', 
+            self.group_name,
             self.channel_name
         )
 
-    async def active_users_update(self, event):
-        active_users = event['data']
+    async def user_activity_update(self, event):
+        active_users = event['active_users']
+        away_users = event['away_users']
+        inactive_users = event['inactive_users']
+
         await self.send(text_data=json.dumps({
-            'type': 'active_users_update',
-            'data': active_users
+            'type': 'user_activity_update',
+            'active_users': active_users,
+            'away_users': away_users,
+            'inactive_users': inactive_users
         }))
 
-class AwayUsersConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        await self.channel_layer.group_add(
-            'away_users', 
-            self.channel_name
-        )
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            'away_users', 
-            self.channel_name
-        )
-
-    async def away_users_update(self, event):
-        away_users = event['data']
-        await self.send(text_data=json.dumps({
-            'type': 'away_users_update',
-            'data': away_users
-        }))
-
-class InactiveUsersConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        await self.channel_layer.group_add(
-            'inactive_users', 
-            self.channel_name
-        )
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            'inactive_users', 
-            self.channel_name
-        )
-
-    async def inactive_users_update(self, event):
-        inactive_users = event['data']
-        await self.send(text_data=json.dumps({
-            'type': 'inactive_users_update',
-            'data': inactive_users
-        }))

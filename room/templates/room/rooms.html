@@ -36,170 +36,82 @@
 
 {% block scripts %}
 
-    <script> 
-        const activeUsersSocket = new WebSocket(
-          'ws://' 
-          + window.location.host 
-          + '/ws/users/active_users/'
-        );
+<script>
+    const userActivitySocket = new WebSocket(
+        'ws://' 
+        + window.location.host 
+        + '/ws/users/user_activity/'
+    );
 
-        const awayUsersSocket = new WebSocket(
-          'ws://' 
-          + window.location.host 
-          + '/ws/users/away_users/'
-        );
+    function renderUsers(data) {
+        const activeUsersElement = document.getElementById('active-users');
+        const awayUsersElement = document.getElementById('away-users');
+        const inactiveUsersElement = document.getElementById('inactive-users');
 
-        const inactiveUsersSocket = new WebSocket(
-          'ws://' 
-          + window.location.host 
-          + '/ws/users/inactive_users/'
-        );
-      
-        function renderActiveUsers(activeUsers) {
-            const activeUsersElement = document.getElementById('active-users');
-            activeUsersElement.innerHTML = '';
-            if(!activeUsers){
-                    return
-            }
-            for (let i = 0; i < activeUsers.length; i++) {
+        activeUsersElement.innerHTML = '';
+        awayUsersElement.innerHTML = '';
+        inactiveUsersElement.innerHTML = '';
+
+        for (const [status, users] of Object.entries(data)) {
+            for (let i = 0; i < users.length; i++) {
                 const userElement = document.createElement('div');
                 userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
-        
+
                 const statusElement = document.createElement('div');
-                statusElement.className = 'w-6 h-6 bg-green-400 rounded-full float-left';
-        
+                statusElement.className = 'w-6 h-6 rounded-full float-left';
+
+                if (status === 'active_users') {
+                    statusElement.classList.add('bg-green-400');
+                } else if (status === 'away_users') {
+                    statusElement.classList.add('bg-yellow-400');
+                } else {
+                    statusElement.classList.add('bg-gray-400');
+                }
+
                 userElement.appendChild(statusElement);
+
                 const usernameElement = document.createElement('div');
-        
                 usernameElement.className = 'font-semibold px-10';
-                usernameElement.innerHTML = '<p>' + activeUsers[i] + '</p>';
-        
+                usernameElement.innerHTML = '<p>' + users[i] + '</p>';
+
                 userElement.appendChild(usernameElement);
-                activeUsersElement.appendChild(userElement);
+
+                if (status === 'active_users') {
+                    activeUsersElement.appendChild(userElement);
+                } else if (status === 'away_users') {
+                    awayUsersElement.appendChild(userElement);
+                } else {
+                    inactiveUsersElement.appendChild(userElement);
+                }
             }
         }
+    }
 
-        function renderAwayUsers(awayUsers) {
-            const awayUsersElement = document.getElementById('away-users');
-            awayUsersElement.innerHTML = '';
-            if(!awayUsers){
-                return
-            }
-            for (let i = 0; i < awayUsers.length; i++) {
-                const userElement = document.createElement('div');
-                userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
+    userActivitySocket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
+        delete data.type;
+        renderUsers(data);
+    };
 
-                const statusElement = document.createElement('div');
-                statusElement.className = 'w-6 h-6 bg-yellow-400 rounded-full float-left';
+    userActivitySocket.onerror = function (e) {
+        console.error('WebSocket error:', e);
+    };
 
-                userElement.appendChild(statusElement);
-                const usernameElement = document.createElement('div');
+    userActivitySocket.onopen = function (e) {
+        console.log('WebSocket connection opened.');
 
-                usernameElement.className = 'font-semibold px-10';
-                usernameElement.innerHTML = '<p>' + awayUsers[i] + '</p>';
+        fetch('/rooms/users/user_activity/')
+            .then(response => response.json())
+            .then(data => {
+                renderUsers(data);
+            })
+            .catch(error => console.error(error));
+    };
 
-                userElement.appendChild(usernameElement);
-                awayUsersElement.appendChild(userElement);
-            }
-        };
-        
-        function renderInactiveUsers(inactiveUsers) {
-            const inactiveUsersElement = document.getElementById('inactive-users');
-            inactiveUsersElement.innerHTML = '';
-            if(!inactiveUsers){
-                return
-            }
-            for (let i = 0; i < inactiveUsers.length; i++) {
-                const userElement = document.createElement('div');
-                userElement.className = 'p-4 mt-3 bg-gray-200 rounded-xl';
+    userActivitySocket.onclose = function(event) {
+        console.log('WebSocket connection closed');
+    };
 
-                const statusElement = document.createElement('div');
-                statusElement.className = 'w-6 h-6 bg-red-400 rounded-full float-left';
-
-                userElement.appendChild(statusElement);
-                const usernameElement = document.createElement('div');
-
-                usernameElement.className = 'font-semibold px-10';
-                usernameElement.innerHTML = '<p>' + inactiveUsers[i] + '</p>';
-
-                userElement.appendChild(usernameElement);
-                inactiveUsersElement.appendChild(userElement);
-            }
-        }
-
-        activeUsersSocket.onopen = function (e) {
-            console.log('WebSocket connection opened.');
-            const activeUsersElement = document.getElementById('active-users');
-            activeUsersElement.innerHTML = '';
-
-            activeUsersSocket.addEventListener('message', function (event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'active_users_update') {
-                    renderActiveUsers(data.data, 'green');
-                }
-            });
-
-            fetch('/rooms/users/active_users/')
-                .then(response => response.json())
-                .then(data => {
-                    renderActiveUsers(data.active_users, 'green');
-                })
-                .catch(error => console.error(error));
-        };
-
-        awayUsersSocket.onopen = function (e) {
-            console.log('WebSocket connection opened.');
-            const awayUsersElement = document.getElementById('away-users');
-            awayUsersElement.innerHTML = '';
-
-            awayUsersSocket.addEventListener('message', function (event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'away_users_update') {
-                    renderAwayUsers(data.data, 'yellow');
-                }
-            });
-
-            fetch('/rooms/users/away_users/')
-                .then(response => response.json())
-                .then(data => {
-                    renderAwayUsers(data.away_users, 'yellow');
-                })
-                .catch(error => console.error(error));
-        };
-
-        inactiveUsersSocket.onopen = function (e) {
-            console.log('WebSocket connection opened.');
-            const inactiveUsersElement = document.getElementById('inactive-users');
-            inactiveUsersElement.innerHTML = '';
-
-            inactiveUsersSocket.addEventListener('message', function (event) {
-                const data = JSON.parse(event.data);
-                if (data.type === 'inactive_users_update') {
-                    renderInactiveUsers(data.data, 'red');
-                }
-            });
-
-            fetch('/rooms/users/inactive_users/')
-                .then(response => response.json())
-                .then(data => {
-                    renderInactiveUsers(data.inactive_users, 'red');
-                })
-                .catch(error => console.error(error));
-        };
-  
-        activeUsersSocket.onclose = function (e) {
-        console.log('WebSocket connection closed.');
-        };
-
-        awayUsersSocket.onclose = function (e) {
-        console.log('WebSocket connection closed.');
-        };
-
-        inactiveUsersSocket.onclose = function (e) {
-        console.log('WebSocket connection closed.');
-        };
-
-    </script>
-      
+</script>
 
 {% endblock %}

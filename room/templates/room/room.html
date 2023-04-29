@@ -9,16 +9,16 @@
 
     <div class="lg:w-2/4 mx-4 lg:mx-auto p-4 bg-white rounded-xl">
         <div class="chat-messages space-y-3" id="chat-messages">
-            {% for message in messages %}
+            {% for chatmessage in messages %}
             <div class="p-4 bg-gray-200 rounded-xl">
                 <div class="w-12 h-12 p-3 bg-white rounded-full float-left mr-3 flex items-center justify-center">
                     <div class="text-gray-400 font-semibold text-lg uppercase text-center">
-                        {{ message.user.username|slice:":1" }}
+                        {{ chatmessage.user.username|slice:":1" }}
                     </div>
                 </div>
                 <div>
-                    <p class="font-semibold">{{ message.user.username }}</p>
-                    <p>{{ message.content }}</p>
+                    <p class="font-semibold">{{ chatmessage.user.username }}</p>
+                    <p>{{ chatmessage.content }}</p>
                 </div>
             </div>
             {% endfor %}
@@ -27,7 +27,7 @@
 
     <div class="lg:w-2/4 mt-6 mx-4 lg:mx-auto p-4 bg-white rounded-xl">
         <form method="post" action="." class="flex">
-            <input type="text" name="content" class="flex-1 mr-3" placeholder="Your message..." id="chat-message-input">
+            <input type="text" name="content" class="flex-1 mr-3 px-3" placeholder="Your message..." id="chat-message-input">
 
             <button class="px-5 py-3 rounded-xl text-white bg-slate-600 hover:bg-slate-700" id="chat-message-submit">Submit</button>
         </form>
@@ -46,18 +46,21 @@
         const chatSocket = new WebSocket(
             'ws://' // websocket protocol scheme
             + window.location.host
-            + '/ws/' // url path prefix - configured in routing.py
+            + '/ws/chat/' // url path prefix - configured in routing.py
             + roomName
             + '/'
         );
 
         chatSocket.onmessage = function(e) {
-            console.log('onmessage')
             const data = JSON.parse(e.data);
-            if(data.message) {
+            if(data.chatmessage) {
                 let html = '<div class="p-4 bg-gray-200 rounded-xl">';
-                    html += '<p class="font-semibold">' + data.username + '</p>';
-                    html += '<p>' + data.message + '</p></div>';
+                html += '<div class="w-12 h-12 p-3 bg-white rounded-full float-left mr-3 flex items-center justify-center">';
+                html += '<div class="text-gray-400 font-semibold text-lg uppercase text-center">';
+                html += data.username.slice(0,1);
+                html += '</div></div>';
+                html += '<div><p class="font-semibold">' + data.username + '</p>';
+                html += '<p>' + data.chatmessage + '</p></div></div>';
                 document.querySelector('#chat-messages').innerHTML += html;
             } else {
                 alert("The message was empty!");
@@ -65,7 +68,7 @@
         }
 
         chatSocket.onclose = function(e) {
-            console.log('onclose')
+            console.log('WebSocket connection closed');
         }
 
         //
@@ -73,10 +76,10 @@
         document.querySelector('#chat-message-submit').onclick = function(e) {
             e.preventDefault();
             const messageInputDom = document.querySelector('#chat-message-input');
-            const message = messageInputDom.value;
+            const chatmessage = messageInputDom.value;
             
             chatSocket.send(JSON.stringify({
-                'message': message,
+                'chatmessage': chatmessage,
                 'username': userName,
                 'room': roomName,
             }));
