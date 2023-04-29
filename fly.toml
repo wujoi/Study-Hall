@@ -1,0 +1,23 @@
+# fly.toml app configuration file generated for study-hall on 2023-04-29T01:21:14-06:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "study-hall"
+primary_region = "den"
+
+[deploy]
+  release_command = "python manage.py migrate"
+
+[env]
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+
+[[statics]]
+  guest_path = "/code/static"
+  url_prefix = "/static/"
