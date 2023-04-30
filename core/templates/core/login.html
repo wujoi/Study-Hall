@@ -4,20 +4,20 @@
 
 {% block content %} 
     <div class="p-10 lg:p-20 text-center">
-        <h1 class="text-3xl lg:text-6xl text-white">Log In</h1>
+        <h1 class="text-xl lg:text-3xl text-black">Log In</h1>
     </div>
 
-    <form method="post" action="." class="lg:w-1/4 px-4 mx-auto" id="login-form">
+    <form method="post" action="." class="lg:w-1/4 px-4 mx-auto drop-shadow-lg" id="login-form">
         {% csrf_token %}
 
         <div class="mb-5">
-            <label class="text-white">Username</label>
+            <label class="text-black">Username</label>
 
             <input type="text" name="username" class="w-full mt-2 px-4 py-2 rounded-xl">
         </div>
 
         <div class="mb-5">
-            <label class="text-white">Password</label>
+            <label class="text-black">Password</label>
 
             <input type="password" name="password" class="w-full mt-2 px-4 py-2 rounded-xl">
         </div>
@@ -39,7 +39,7 @@
             </div>
         {% endfor %}
            
-        <button class="px-5 py-3 rounded-xl text-white bg-slate-800 hover:bg-slate-700">Log In</button>
+        <button class="px-5 py-3 rounded-xl text-white bg-violet-700 hover:bg-violet-600">Log In</button>
     </form>
 
 {% endblock %}
