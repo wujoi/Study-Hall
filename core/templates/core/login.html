@@ -3,11 +3,11 @@
 {% block title %}Log In | {% endblock %}
 
 {% block content %} 
-    <div class="p-10 lg:p-20 text-center drop-shadow-lg">
-        <h1 class="text-3xl lg:text-6xl text-black">Log In</h1>
+    <div class="p-10 lg:p-20 text-center">
+        <h1 class="text-xl lg:text-3xl text-black">Log In</h1>
     </div>
 
-    <form method="post" action="." class="lg:w-1/4 px-4 mx-auto" id="login-form">
+    <form method="post" action="." class="lg:w-1/4 px-4 mx-auto drop-shadow-lg" id="login-form">
         {% csrf_token %}
 
         <div class="mb-5">
